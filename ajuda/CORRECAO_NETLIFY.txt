@@ -1,0 +1,8 @@
+Correcoes para o erro de build do Netlify de 08/10/2026:
+- src/vite-env.d.ts: declara os tipos de import.meta.env usados pelo Vite.
+- tsconfig.node.json: remove allowImportingTsExtensions (incompativel com emissao).
+- .gitignore: impede incluir .env em commits futuros.
+
+Ajustes das fontes para celular foram mantidos.
+Atualize os arquivos no GitHub e acompanhe Deploys no Netlify.
+Aviso: erro de Row Level Security no Supabase e outro assunto e precisa ser diagnosticado separadamente.
