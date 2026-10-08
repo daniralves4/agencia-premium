@@ -1,0 +1,21 @@
+AGENCIA PREMIUM - FONTES v2
+
+O que este pacote muda:
+- Aumenta as letras no computador e no celular.
+- Mantem a largura, altura e padding dos botoes.
+- Preserva todos os arquivos e os ajustes de compilacao para Netlify.
+
+COMO CONFERIR A PUBLICACAO:
+Depois do Netlify mostrar Published, abra o endereco do seu aplicativo
+acrescentando /versao.txt ao final do dominio.
+Devera aparecer: Agencia Premium - fontes maiores computador e celular - versao 2 - 2026-10-08
+Se nao aparecer, voce pode estar vendo outro site ou outro deploy.
+
+IMPORTANTE - AGENDA:
+O erro de gravacao no Supabase NAO FOI CORRIGIDO por este ZIP.
+A gravacao e bloqueada por regras de seguranca (RLS), que exigem autorizacao
+no projeto Supabase. Nao desabilite RLS ou crie politica de acesso publico
+para resolver isso. A consulta SOMENTE LEITURA esta em
+ajuda/DIAGNOSTICO_SUPABASE.sql.
+
+O arquivo .env nao acompanha o ZIP; mantenha-o fora do repositorio publico.

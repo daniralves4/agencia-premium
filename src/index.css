@@ -2734,3 +2734,122 @@ label {
   .menu-nav button { font-size: 12px !important; }
   .menu-icon { font-size: 14px !important; }
 }
+
+/* ===== ACESSIBILIDADE TIPOGRÁFICA — COMPUTADOR + CELULAR v2 =====
+   Ajuste apenas de fontes. Larguras, alturas, padding e layout dos botões
+   permanecem os existentes. Esta seção tem prioridade sobre os estilos
+   antigos e sobre os ajustes restritos a telas menores. */
+body,
+.main {
+  font-size: 16px;
+}
+
+/* Texto habitual das telas, inclusive legendas e conteúdo secundário. */
+.main p,
+.main small,
+.main label,
+.main .hint,
+.main .eyebrow,
+.main .toolbar span,
+.main .panel-title span,
+.main .section-subtitle,
+.main .dashboard-subtitle,
+.main .finance-row small,
+.main .finance-entry-dates span,
+.main .campaign-card-header p,
+.main .campaign-info,
+.main .client-data,
+.main .client-card-top p,
+.main .detail-header p,
+.main .result-row span,
+.main .task-card p,
+.main .task-card small,
+.main .task-summary span,
+.main .finance-summary span,
+.main .detail-summary span,
+.main .campaign-result-summary span,
+.main .agenda-calendar-header span,
+.main .agenda-empty,
+.main .priority-item small,
+.main .priority-item .priority-date,
+.main .priority-title span,
+.main .priority-empty {
+  font-size: 14px !important;
+  line-height: 1.45;
+}
+
+/* Textos nos indicadores financeiros e contadores. */
+.main .metric-card span,
+.main .metric-card p,
+.main .metric-card small,
+.main .dashboard-metrics .metric-card span,
+.main .dashboard-metrics .metric-card p,
+.main .dashboard-metrics .metric-card small,
+.main .finance-entry p {
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+}
+.main .metric-card strong,
+.main .dashboard-metrics .metric-card strong {
+  font-size: 21px !important;
+  line-height: 1.2 !important;
+}
+
+/* Títulos, registros da agenda e da lista de tarefas. */
+.main .panel-title h3,
+.main .section-title h3,
+.main .task-card h3,
+.main .finance-entry h3,
+.main .client-card-top > strong,
+.main .campaign-card-header > strong,
+.main .account-row strong,
+.main .priority-title strong,
+.main .priority-item strong,
+.main .result-row strong {
+  font-size: 17px !important;
+  line-height: 1.3;
+}
+.main .agenda-list-item strong,
+.main .agenda-list-item small,
+.main .agenda-day,
+.main .agenda-weekdays span,
+.main .agenda-type,
+.main .agenda-status,
+.main .agenda-calendar-header strong {
+  font-size: 14px !important;
+  line-height: 1.35;
+}
+
+/* Etiquetas, filtros e botões: somente font-size; não mexer nas dimensões. */
+.sidebar .menu-nav button,
+.main button,
+.main .gold-button,
+.main .ghost-button,
+.main .status-pill,
+.main .content-status,
+.main .content-type,
+.main .campaign-status,
+.main .finance-status,
+.main .finance-type,
+.main .finance-recurring,
+.main .task-tags span,
+.main .task-alert,
+.main .task-today {
+  font-size: 14px !important;
+}
+.sidebar .menu-icon { font-size: 16px !important; }
+.sidebar .sidebar-footer { font-size: 12px !important; }
+.main input,
+.main select,
+.main textarea { font-size: 16px !important; }
+.main input::placeholder,
+.main textarea::placeholder { font-size: 14px !important; }
+.main .msg { font-size: 14px !important; line-height: 1.45; }
+
+/* Celular: botões continuam com seus tamanhos atuais, apenas texto maior. */
+@media (max-width: 900px) {
+  .sidebar .menu-nav button { font-size: 13px !important; }
+  .sidebar .menu-icon { font-size: 15px !important; }
+  .main .dashboard-metrics .metric-card strong,
+  .main .metric-card strong { font-size: 20px !important; }
+}
