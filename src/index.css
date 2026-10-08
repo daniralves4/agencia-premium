@@ -2575,3 +2575,162 @@ label {
     font-size: 11px !important;
   }
 }
+
+/* ===== LEGIBILIDADE NO CELULAR (2026-10-08) =====
+   Somente tipografia: não alterar altura/largura/padding dos botões,
+   quantidade de colunas, distâncias, cores ou estrutura das telas.
+   As regras vêm depois das antigas que reduziam textos a 7–9px. */
+@media (max-width: 900px) {
+  body, .main { font-size: 14px; }
+
+  .eyebrow,
+  .dashboard-subtitle,
+  .section-subtitle,
+  .hint,
+  .panel-title span,
+  .toolbar span,
+  .empty p,
+  .empty strong,
+  .client-data,
+  .client-card-top p,
+  .detail-header p,
+  .detail-summary span,
+  .account-row span,
+  .mini-row span,
+  .asset-card span,
+  .asset-card p,
+  .content-main small,
+  .priority-title span,
+  .priority-item .priority-date,
+  .priority-item small,
+  .priority-empty,
+  .finance-row small,
+  .finance-empty,
+  .agenda-calendar-header span,
+  .agenda-empty,
+  .campaign-card-header p,
+  .campaign-info,
+  .campaign-result-summary span,
+  .result-row span,
+  .campaign-card-results span,
+  .finance-summary span,
+  .finance-entry p,
+  .finance-entry-dates span,
+  .task-summary span,
+  .task-card p,
+  .task-card small {
+    font-size: 13px !important;
+    line-height: 1.4;
+  }
+
+  .menu-nav button { font-size: 12px !important; }
+  .menu-icon { font-size: 14px !important; }
+
+  .gold-button,
+  .ghost-button,
+  .client-actions button,
+  .account-row button,
+  .asset-card button,
+  .content-actions button,
+  .campaign-actions button,
+  .result-row button,
+  .finance-entry-actions button,
+  .task-actions button {
+    font-size: 13px !important;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  input::placeholder, textarea::placeholder {
+    font-size: 14px;
+  }
+  label { font-size: 14px !important; }
+
+  .msg {
+    font-size: 13px !important;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .dashboard-metrics .metric-card span,
+  .metric-card span,
+  .metric-card p,
+  .metric-card small,
+  .dashboard-metrics .metric-card p,
+  .dashboard-metrics .metric-card small {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+  .dashboard-metrics .metric-card strong,
+  .metric-card strong {
+    font-size: 20px !important;
+    line-height: 1.15 !important;
+  }
+
+  .agenda-day { font-size: 13px !important; }
+  .agenda-calendar-header strong,
+  .agenda-weekdays span,
+  .agenda-list-item strong,
+  .agenda-list-item small,
+  .agenda-type,
+  .agenda-status {
+    font-size: 12px !important;
+  }
+
+  .priority-item strong,
+  .priority-title strong,
+  .panel-title h3,
+  .section-title h3,
+  .account-row strong,
+  .mini-row strong,
+  .asset-card strong,
+  .result-row strong,
+  .campaign-card-results strong,
+  .finance-entry h3,
+  .task-card h3 {
+    font-size: 16px !important;
+  }
+  .priority-item strong,
+  .priority-item small {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .status-pill,
+  .content-type,
+  .content-status,
+  .campaign-status,
+  .finance-type,
+  .finance-status,
+  .finance-recurring,
+  .task-tags span,
+  .task-alert,
+  .task-today {
+    font-size: 12px !important;
+    line-height: 1.25;
+  }
+  .task-tags,
+  .content-tags,
+  .finance-entry-tags { flex-wrap: wrap; }
+
+  .finance-summary strong,
+  .campaign-result-summary strong,
+  .task-summary strong,
+  .detail-summary strong {
+    font-size: 21px !important;
+  }
+
+  .campaign-card-header > strong,
+  .finance-entry-side > strong,
+  .client-card-top > strong {
+    font-size: 19px !important;
+  }
+
+  .campaign-results-title span { font-size: 13px !important; }
+}
+
+@media (max-width: 420px) {
+  .menu-nav button { font-size: 12px !important; }
+  .menu-icon { font-size: 14px !important; }
+}

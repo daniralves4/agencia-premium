@@ -1,0 +1,30 @@
+AGÊNCIA PREMIUM - CORREÇÃO DAS FONTES NO CELULAR
+08/10/2026
+
+1) O QUE FOI ALTERADO
+- Letras das telas aumentadas (especialmente o menu inferior, Tarefas,
+  Dashboard, Campanhas, Clientes, Conteúdo, Financeiro e filtros).
+- Tamanhos e áreas dos botões preservados; aparência/cores mantidas.
+- Erros de permissão do Supabase passam a aparecer em português.
+
+2) SOBRE O ERRO VERMELHO (SUPABASE)
+A mensagem "new row violates row-level security policy" indica que o
+servidor recusou a gravação. Alterar o site NÃO autoriza o banco de dados.
+Por segurança, não foi criada uma permissão pública que permitiria a qualquer
+pessoa alterar informações comerciais e financeiras.
+
+Para diagnosticar com segurança: no Supabase, abra SQL Editor, execute a
+consulta somente-leitura em ajuda/DIAGNOSTICO_SUPABASE.sql e envie uma foto
+do resultado. Também é necessário verificar como o acesso de usuários ao
+sistema é feito antes de aplicar políticas de gravação.
+
+NÃO DESATIVE o RLS e NÃO coloque chaves secretas no site.
+
+3) PUBLICAÇÃO
+- Para publicação manual no Netlify, utilize o arquivo ZIP separado
+  chamado agencia-premium-netlify-celular.zip, que já estará compilado.
+- Para continuar editando no StackBlitz/GitHub, utilize o ZIP do código-fonte.
+- Se o site estiver ligado ao GitHub, alterações publicadas manualmente no
+  Netlify poderão ser substituídas por um deploy posterior do GitHub.
+- Atualize a página no celular após a publicação (às vezes é necessário
+  fechá-la e abri-la novamente).

@@ -179,6 +179,15 @@ const plataformasPadrao = [
   'Outro',
 ];
 
+/** Exibe uma orientação clara sem alterar nem contornar as políticas do Supabase. */
+function mensagemErroBanco(mensagem: string) {
+  if (/row.level security|permission denied|42501/i.test(mensagem)) {
+    const tabela = mensagem.match(/(?:for table|table)\s+["'`]?([a-zA-Z_][a-zA-Z_0-9]*)/i)?.[1];
+    return `O Supabase bloqueou esta operação por uma regra de segurança (RLS)${tabela ? ` na tabela ${tabela}` : ''}. Os dados não foram salvos. É necessário revisar o acesso autorizado no Supabase.`;
+  }
+  return mensagem;
+}
+
 function moeda(valor: number) {
   return valor.toLocaleString('pt-BR', {
     style: 'currency',
@@ -790,7 +799,7 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -803,7 +812,7 @@ export default function App() {
     if (!window.confirm('Excluir definitivamente esta tarefa?')) return;
     const { error } = await supabase.from('Tasks').delete().eq('id', id);
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
     setSucesso('Tarefa excluída.');
@@ -829,7 +838,7 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -849,7 +858,7 @@ export default function App() {
     if (!window.confirm('Excluir este compromisso?')) return;
     const { error } = await supabase.from('AgendaEvents').delete().eq('id', id);
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
     await carregarTarefasAgenda();
@@ -864,7 +873,7 @@ export default function App() {
       .eq('id', id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1034,7 +1043,7 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1062,7 +1071,7 @@ export default function App() {
       .eq('id', entry.id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1082,7 +1091,7 @@ export default function App() {
       .eq('id', entry.id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1104,7 +1113,7 @@ export default function App() {
       .eq('id', entry.id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1185,7 +1194,7 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1620,7 +1629,7 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1650,7 +1659,7 @@ export default function App() {
     const { error } = await supabase.from('Campaigns').delete().eq('id', id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1683,7 +1692,7 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1710,7 +1719,7 @@ export default function App() {
     const { error } = await supabase.from('CampaignResults').delete().eq('id', id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -1869,7 +1878,7 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -2205,7 +2214,7 @@ export default function App() {
 
     if (error) {
       console.error(error);
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -2226,7 +2235,7 @@ export default function App() {
       .eq('id', client.id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -2260,7 +2269,7 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -2283,7 +2292,7 @@ export default function App() {
     const { error } = await supabase.from('ClientAccounts').delete().eq('id', id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -2323,7 +2332,7 @@ export default function App() {
     setSaving(false);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
@@ -2460,7 +2469,7 @@ export default function App() {
       .eq('id', asset.id);
 
     if (error) {
-      setErro(error.message);
+      setErro(mensagemErroBanco(error.message));
       return;
     }
 
