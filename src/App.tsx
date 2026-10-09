@@ -501,6 +501,8 @@ export default function App() {
     return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   });
   const [mostrarFormCompromisso, setMostrarFormCompromisso] = useState(false);
+  const [compromissoEditandoId, setCompromissoEditandoId] = useState<number | null>(null);
+  const [mostrarDetalhesDia, setMostrarDetalhesDia] = useState(false);
   const [compromissoForm, setCompromissoForm] = useState({
     client_id: '',
     title: '',
@@ -925,6 +927,8 @@ export default function App() {
   }
 
   function abrirFormularioCompromisso() {
+    setCompromissoEditandoId(null);
+    setMostrarDetalhesDia(false);
     setErro('');
     setCompromissoForm({
       client_id: '',
@@ -933,6 +937,20 @@ export default function App() {
       event_time: '',
       notes: '',
     });
+    setMostrarFormCompromisso(true);
+  }
+
+  function editarCompromisso(item: AgendaEvent) {
+    setMostrarDetalhesDia(false);
+    setCompromissoEditandoId(item.id);
+    setCompromissoForm({
+      client_id: item.client_id != null ? String(item.client_id) : '',
+      title: item.title,
+      event_date: item.event_date,
+      event_time: item.event_time?.slice(0, 5) ?? '',
+      notes: item.notes ?? '',
+    });
+    setErro('');
     setMostrarFormCompromisso(true);
   }
 
@@ -945,13 +963,17 @@ export default function App() {
     }
 
     setSaving(true);
-    const { error } = await supabase.from('AgendaEvents').insert({
+    setErro('');
+    const payload = {
       client_id: compromissoForm.client_id ? Number(compromissoForm.client_id) : null,
       title: compromissoForm.title.trim(),
       event_date: compromissoForm.event_date,
       event_time: compromissoForm.event_time || null,
       notes: compromissoForm.notes.trim() || null,
-    });
+    };
+    const { error } = compromissoEditandoId !== null
+      ? await supabase.from('AgendaEvents').update(payload).eq('id', compromissoEditandoId)
+      : await supabase.from('AgendaEvents').insert(payload);
     setSaving(false);
 
     if (error) {
@@ -959,15 +981,16 @@ export default function App() {
       return;
     }
 
-    setCompromissoForm({
-      client_id: '',
-      title: '',
-      event_date: agendaDataSelecionada,
-      event_time: '',
-      notes: '',
-    });
+    setAgendaDataSelecionada(payload.event_date);
+    const [ano, mes] = payload.event_date.split('-').map(Number);
+    setAgendaMes(new Date(ano, mes - 1, 1));
+    setCompromissoEditandoId(null);
     setMostrarFormCompromisso(false);
-    setSucesso('Compromisso adicionado à agenda.');
+    // Após salvar pelo Dashboard, mostra onde o compromisso ficou na agenda.
+    if (tela === 'dashboard') setMostrarDetalhesDia(true);
+    setSucesso(compromissoEditandoId !== null
+      ? 'Compromisso atualizado na agenda e em Tarefas.'
+      : 'Compromisso salvo na agenda e disponível em Tarefas.');
     await carregarTarefasAgenda();
   }
 
@@ -978,6 +1001,7 @@ export default function App() {
       setErro(mensagemErroBanco(error.message));
       return;
     }
+    setSucesso('Compromisso excluído da agenda e da lista de Tarefas.');
     await carregarTarefasAgenda();
   }
 
@@ -1432,6 +1456,22 @@ export default function App() {
       return (a.due_at || '9999').localeCompare(b.due_at || '9999');
     });
 
+  // Os compromissos também aparecem na tela Tarefas, mas continuam em AgendaEvents.
+  // Não duplicamos registros na tabela Tasks (evita duas exclusões/edições divergentes).
+  const compromissosFiltrados = agendaEvents
+    .filter((item) => {
+      const cliente = clients.find((c) => c.id === item.client_id);
+      const termo = buscaTarefa.trim().toLowerCase();
+      const buscaOk = !termo || [item.title, item.notes, cliente?.name]
+        .filter(Boolean)
+        .some((valor) => String(valor).toLowerCase().includes(termo));
+      const clienteOk = !filtroClienteTarefa || String(item.client_id ?? '') === filtroClienteTarefa;
+      // Compromissos não possuem prioridade/status de conclusão no banco atual.
+      return buscaOk && clienteOk && !filtroStatusTarefa && !filtroPrioridadeTarefa;
+    })
+    .sort((a, b) => `${a.event_date} ${a.event_time || '99:99'}`
+      .localeCompare(`${b.event_date} ${b.event_time || '99:99'}`));
+
   const limiteSemana = (() => {
     const data = new Date();
     data.setHours(0, 0, 0, 0);
@@ -1461,6 +1501,8 @@ export default function App() {
     const data = agendaDataSelecionada;
     const itens: Array<{
       tipo: string;
+      origem: 'compromisso' | 'conteudo' | 'campanha' | 'financeiro' | 'tarefa';
+      registroId: number;
       titulo: string;
       subtitulo: string;
       hora?: string;
@@ -1475,6 +1517,8 @@ export default function App() {
         const client = clients.find((c) => c.id === item.client_id);
         itens.push({
           tipo: 'Compromisso',
+          origem: 'compromisso',
+          registroId: item.id,
           titulo: item.title,
           subtitulo: client?.name || item.notes || 'Compromisso',
           hora: item.event_time?.slice(0, 5) || '',
@@ -1490,6 +1534,8 @@ export default function App() {
         const client = clients.find((c) => c.id === item.client_id);
         itens.push({
           tipo: 'Conteúdo',
+          origem: 'conteudo',
+          registroId: item.id,
           titulo: item.title,
           subtitulo: `${client?.name || 'Cliente'} • ${rotuloConteudo(item.content_type)}`,
           hora: item.scheduled_time?.slice(0, 5) || '',
@@ -1516,6 +1562,8 @@ export default function App() {
         const client = clients.find((c) => c.id === item.client_id);
         itens.push({
           tipo: 'Campanha',
+          origem: 'campanha',
+          registroId: item.id,
           titulo: item.name,
           subtitulo: `${client?.name || 'Cliente'} • ${
             item.start_date === data ? 'Início' : 'Término'
@@ -1554,6 +1602,8 @@ export default function App() {
             : 'A pagar';
 
         itens.push({
+          origem: 'financeiro',
+          registroId: item.id,
           tipo:
             item.entry_type === 'income'
               ? item.category === 'Mensalidade'
@@ -1576,6 +1626,8 @@ export default function App() {
         const client = clients.find((c) => c.id === item.client_id);
         itens.push({
           tipo: 'Tarefa',
+          origem: 'tarefa',
+          registroId: item.id,
           titulo: item.title,
           subtitulo: `${client?.name ? `${client.name} • ` : ''}${rotuloPrioridade(
             item.priority
@@ -1603,6 +1655,38 @@ export default function App() {
     ...tarefas.map((item) => dataIsoLocal(item.due_at)).filter(Boolean),
   ]);
 
+  function abrirRegistroDaAgenda(item: (typeof agendaItensDia)[number]) {
+    setMostrarDetalhesDia(false);
+    if (item.origem === 'compromisso') {
+      const registro = agendaEvents.find((e) => e.id === item.registroId);
+      if (registro) editarCompromisso(registro);
+    } else if (item.origem === 'financeiro') {
+      const registro = financeiroEntries.find((e) => e.id === item.registroId);
+      if (registro) {
+        setTela('financeiro');
+        editarLancamentoFinanceiro(registro);
+      }
+    } else if (item.origem === 'tarefa') {
+      const registro = tarefas.find((e) => e.id === item.registroId);
+      if (registro) {
+        setTela('tarefas');
+        editarTarefa(registro);
+      }
+    } else if (item.origem === 'conteudo') {
+      const registro = conteudos.find((e) => e.id === item.registroId);
+      if (registro) {
+        setTela('conteudo');
+        editarConteudo(registro);
+      }
+    } else if (item.origem === 'campanha') {
+      const registro = campanhas.find((e) => e.id === item.registroId);
+      if (registro) {
+        setTela('campanhas');
+        editarCampanha(registro);
+      }
+    }
+  }
+
   function diasDoMesAgenda() {
     const ano = agendaMes.getFullYear();
     const mes = agendaMes.getMonth();
@@ -1621,6 +1705,7 @@ export default function App() {
       agendaMes.getMonth() + 1
     ).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
     setAgendaDataSelecionada(data);
+    setMostrarDetalhesDia(true);
   }
 
   function mudarMesAgenda(direcao: number) {
@@ -2872,9 +2957,9 @@ export default function App() {
                 }}
               />
               <Card
-                titulo="Tarefas pendentes"
-                valor={String(tarefasPendentes.length)}
-                detalhe={`${tarefasAtrasadas.length} atrasada(s) • ${tarefasHoje.length} para hoje`}
+                titulo="Tarefas e compromissos"
+                valor={String(tarefasPendentes.length + agendaEvents.filter((item) => item.event_date >= dataLocalHoje()).length)}
+                detalhe={`${tarefasPendentes.length} tarefa(s) • ${agendaEvents.filter((item) => item.event_date >= dataLocalHoje()).length} compromisso(s) agendado(s)`}
                 onClick={() => setTela('tarefas')}
               />
 
@@ -2923,6 +3008,7 @@ export default function App() {
                           hojeAgenda ? ' today' : ''
                         }${temItens ? ' has-items' : ''}`}
                         onClick={() => selecionarDiaAgenda(dia)}
+                        aria-label={`Ver agenda do dia ${dataBR(data)}`}
                       >
                         <span>{dia}</span>
                         {temItens && <i />}
@@ -2938,132 +3024,16 @@ export default function App() {
                     <p className="eyebrow">AGENDA DO DIA</p>
                     <h3>{dataBR(agendaDataSelecionada)}</h3>
                   </div>
-                  <button
-                    className="ghost-button"
-                    onClick={abrirFormularioCompromisso}
-                  >
-                    + Compromisso
-                  </button>
+                  <div className="agenda-form-actions">
+                    <button className="ghost-button" type="button" onClick={() => setMostrarDetalhesDia(true)}>
+                      Ver tudo do dia
+                    </button>
+                    <button className="ghost-button" type="button" onClick={abrirFormularioCompromisso}>
+                      + Compromisso
+                    </button>
+                  </div>
                 </div>
 
-                {mostrarFormCompromisso && (
-                  <div
-                    className="agenda-modal-backdrop"
-                    onMouseDown={(event) => {
-                      if (event.target === event.currentTarget && !saving) {
-                        setMostrarFormCompromisso(false);
-                      }
-                    }}
-                  >
-                    <section
-                      className="agenda-modal-card"
-                      role="dialog"
-                      aria-modal="true"
-                      aria-labelledby="agenda-modal-title"
-                      onKeyDown={(event) => {
-                        if (event.key === 'Escape' && !saving) {
-                          setMostrarFormCompromisso(false);
-                        }
-                      }}
-                    >
-                      <div className="agenda-modal-header">
-                        <div>
-                          <p className="eyebrow">AGÊNCIA PREMIUM · AGENDA</p>
-                          <h2 id="agenda-modal-title">Novo compromisso</h2>
-                          <p>Preencha os dados para adicionar à agenda.</p>
-                        </div>
-                        <button
-                          className="agenda-modal-close"
-                          type="button"
-                          aria-label="Fechar formulário de compromisso"
-                          disabled={saving}
-                          onClick={() => setMostrarFormCompromisso(false)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                      <form className="agenda-event-form agenda-modal-form" onSubmit={salvarCompromisso}>
-                        <label htmlFor="agenda-novo-cliente">
-                          Cliente
-                          <select
-                            id="agenda-novo-cliente"
-                            value={compromissoForm.client_id}
-                            onChange={(e) =>
-                              setCompromissoForm({ ...compromissoForm, client_id: e.target.value })
-                            }
-                          >
-                            <option value="">Sem cliente</option>
-                            {clients.map((client) => (
-                              <option key={client.id} value={client.id}>{client.name}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label htmlFor="agenda-novo-titulo">
-                          Compromisso
-                          <input
-                            id="agenda-novo-titulo"
-                            placeholder="Digite o compromisso"
-                            required
-                            autoFocus
-                            value={compromissoForm.title}
-                            onChange={(e) =>
-                              setCompromissoForm({ ...compromissoForm, title: e.target.value })
-                            }
-                          />
-                        </label>
-                        <label htmlFor="agenda-novo-data">
-                          Data
-                          <input
-                            id="agenda-novo-data"
-                            type="date"
-                            required
-                            value={compromissoForm.event_date}
-                            onChange={(e) =>
-                              setCompromissoForm({ ...compromissoForm, event_date: e.target.value })
-                            }
-                          />
-                        </label>
-                        <label htmlFor="agenda-novo-hora">
-                          Horário (opcional)
-                          <input
-                            id="agenda-novo-hora"
-                            type="time"
-                            value={compromissoForm.event_time}
-                            onChange={(e) =>
-                              setCompromissoForm({ ...compromissoForm, event_time: e.target.value })
-                            }
-                          />
-                        </label>
-                        <label htmlFor="agenda-novo-notas" className="agenda-modal-full">
-                          Observações (opcional)
-                          <textarea
-                            id="agenda-novo-notas"
-                            placeholder="Informações adicionais"
-                            rows={3}
-                            value={compromissoForm.notes}
-                            onChange={(e) =>
-                              setCompromissoForm({ ...compromissoForm, notes: e.target.value })
-                            }
-                          />
-                        </label>
-                        {erro && <p className="agenda-modal-error" role="alert">{erro}</p>}
-                        <div className="agenda-form-actions agenda-modal-full">
-                          <button
-                            type="button"
-                            className="ghost-button"
-                            disabled={saving}
-                            onClick={() => setMostrarFormCompromisso(false)}
-                          >
-                            Cancelar
-                          </button>
-                          <button className="gold-button" type="submit" disabled={saving}>
-                            {saving ? 'Salvando...' : 'Salvar compromisso'}
-                          </button>
-                        </div>
-                      </form>
-                    </section>
-                  </div>
-                )}
 
                 <div className="agenda-day-list">
                   {agendaItensDia.map((item, index) => (
@@ -3084,6 +3054,16 @@ export default function App() {
                           )}
                         </div>
                         <small>{item.subtitulo}</small>
+                        <div className="agenda-item-actions">
+                          <button type="button" onClick={() => abrirRegistroDaAgenda(item)}>
+                            {item.origem === 'compromisso' ? 'Editar' : 'Abrir / editar'}
+                          </button>
+                          {item.origem === 'compromisso' && (
+                            <button type="button" className="danger-button" onClick={() => excluirCompromisso(item.registroId)}>
+                              Excluir
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -5129,7 +5109,10 @@ export default function App() {
                 ))}
               </select>
 
-              <span>{tarefasFiltradas.length} tarefa(s)</span>
+              <span>{tarefasFiltradas.length} tarefa(s) • {compromissosFiltrados.length} compromisso(s)</span>
+              <button type="button" className="ghost-button" onClick={abrirFormularioCompromisso}>
+                + Compromisso
+              </button>
             </div>
 
             {mostrarFormTarefa && (
@@ -5293,6 +5276,32 @@ export default function App() {
               <div className="panel">Carregando tarefas...</div>
             ) : (
               <div className="task-list">
+                <div className="task-section-heading">
+                  <h3>Compromissos da agenda ({compromissosFiltrados.length})</h3>
+                  <small>São os mesmos compromissos do Dashboard, sem duplicar registros.</small>
+                </div>
+                {compromissosFiltrados.map((compromisso) => {
+                  const cliente = clients.find((c) => c.id === compromisso.client_id);
+                  return (
+                    <article key={`compromisso-${compromisso.id}`} className="task-card agenda-task-card">
+                      <div>
+                        <div className="task-tags"><span>Compromisso</span><span>Agendado</span></div>
+                        <h3>{compromisso.title}</h3>
+                        <p>{cliente?.name || 'Sem cliente'}</p>
+                        {compromisso.notes && <p className="task-description">{compromisso.notes}</p>}
+                        <small>{dataBR(compromisso.event_date)} {compromisso.event_time?.slice(0,5) || 'Sem horário'}</small>
+                      </div>
+                      <div className="task-actions">
+                        <button type="button" onClick={() => editarCompromisso(compromisso)}>Editar</button>
+                        <button type="button" className="danger-button" onClick={() => excluirCompromisso(compromisso.id)}>Excluir</button>
+                      </div>
+                    </article>
+                  );
+                })}
+                {compromissosFiltrados.length === 0 && (
+                  <p className="task-section-empty">Nenhum compromisso encontrado para os filtros atuais.</p>
+                )}
+                <div className="task-section-heading"><h3>Tarefas ({tarefasFiltradas.length})</h3></div>
                 {tarefasFiltradas.map((tarefa) => {
                   const client = clients.find((c) => c.id === tarefa.client_id);
                   const atrasada =
@@ -5374,6 +5383,172 @@ export default function App() {
             </p>
           </section>
         )}
+
+
+        {mostrarDetalhesDia && tela === 'dashboard' && (
+          <div className="agenda-modal-backdrop" onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setMostrarDetalhesDia(false);
+          }}>
+            <section className="agenda-modal-card agenda-day-dialog" role="dialog" aria-modal="true" aria-labelledby="agenda-dia-title">
+              <div className="agenda-modal-header">
+                <div>
+                  <p className="eyebrow">AGENDA PREMIUM · RESUMO DO DIA</p>
+                  <h2 id="agenda-dia-title">{dataBR(agendaDataSelecionada)}</h2>
+                  <p>{agendaItensDia.length} item(ns): compromissos, tarefas, conteúdos e financeiro.</p>
+                </div>
+                <button type="button" className="agenda-modal-close" aria-label="Fechar agenda do dia" onClick={() => setMostrarDetalhesDia(false)}>×</button>
+              </div>
+              <div className="agenda-day-dialog-actions">
+                <button type="button" className="gold-button" onClick={abrirFormularioCompromisso}>+ Compromisso</button>
+              </div>
+              <div className="agenda-day-dialog-list">
+                {agendaItensDia.map((item) => (
+                  <article key={`${item.origem}-${item.registroId}`} className="agenda-day-dialog-item">
+                    <div className="agenda-item-title-row">
+                      <span className="agenda-type">{item.tipo}</span>
+                      {item.statusTexto && <span className={`agenda-status ${item.statusClasse || 'neutral'}`}>{item.statusTexto}</span>}
+                    </div>
+                    <strong>{item.hora ? `${item.hora} • ` : ''}{item.titulo}</strong>
+                    <small>{item.subtitulo}</small>
+                    <div className="agenda-item-actions">
+                      <button type="button" onClick={() => abrirRegistroDaAgenda(item)}>
+                        {item.origem === 'compromisso' ? 'Editar compromisso' : 'Abrir / editar'}
+                      </button>
+                      {item.origem === 'compromisso' && (
+                        <button type="button" className="danger-button" onClick={async () => {
+                          await excluirCompromisso(item.registroId);
+                        }}>Excluir</button>
+                      )}
+                    </div>
+                  </article>
+                ))}
+                {agendaItensDia.length === 0 && (
+                  <p className="agenda-empty">Nenhum compromisso, tarefa ou lançamento nesta data.</p>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
+{/* Formulário global: disponível tanto no Dashboard quanto em Tarefas. */}
+{mostrarFormCompromisso && (
+                  <div
+                    className="agenda-modal-backdrop"
+                    onMouseDown={(event) => {
+                      if (event.target === event.currentTarget && !saving) {
+                        setMostrarFormCompromisso(false);
+                      }
+                    }}
+                  >
+                    <section
+                      className="agenda-modal-card"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="agenda-modal-title"
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape' && !saving) {
+                          setMostrarFormCompromisso(false);
+                        }
+                      }}
+                    >
+                      <div className="agenda-modal-header">
+                        <div>
+                          <p className="eyebrow">AGÊNCIA PREMIUM · AGENDA</p>
+                          <h2 id="agenda-modal-title">{compromissoEditandoId !== null ? 'Editar compromisso' : 'Novo compromisso'}</h2>
+                          <p>Preencha os dados do compromisso.</p>
+                        </div>
+                        <button
+                          className="agenda-modal-close"
+                          type="button"
+                          aria-label="Fechar formulário de compromisso"
+                          disabled={saving}
+                          onClick={() => setMostrarFormCompromisso(false)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <form className="agenda-event-form agenda-modal-form" onSubmit={salvarCompromisso}>
+                        <label htmlFor="agenda-novo-cliente">
+                          Cliente
+                          <select
+                            id="agenda-novo-cliente"
+                            value={compromissoForm.client_id}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, client_id: e.target.value })
+                            }
+                          >
+                            <option value="">Sem cliente</option>
+                            {clients.map((client) => (
+                              <option key={client.id} value={client.id}>{client.name}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label htmlFor="agenda-novo-titulo">
+                          Compromisso
+                          <input
+                            id="agenda-novo-titulo"
+                            placeholder="Digite o compromisso"
+                            required
+                            autoFocus
+                            value={compromissoForm.title}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, title: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label htmlFor="agenda-novo-data">
+                          Data
+                          <input
+                            id="agenda-novo-data"
+                            type="date"
+                            required
+                            value={compromissoForm.event_date}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, event_date: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label htmlFor="agenda-novo-hora">
+                          Horário (opcional)
+                          <input
+                            id="agenda-novo-hora"
+                            type="time"
+                            value={compromissoForm.event_time}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, event_time: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label htmlFor="agenda-novo-notas" className="agenda-modal-full">
+                          Observações (opcional)
+                          <textarea
+                            id="agenda-novo-notas"
+                            placeholder="Informações adicionais"
+                            rows={3}
+                            value={compromissoForm.notes}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, notes: e.target.value })
+                            }
+                          />
+                        </label>
+                        {erro && <p className="agenda-modal-error" role="alert">{erro}</p>}
+                        <div className="agenda-form-actions agenda-modal-full">
+                          <button
+                            type="button"
+                            className="ghost-button"
+                            disabled={saving}
+                            onClick={() => setMostrarFormCompromisso(false)}
+                          >
+                            Cancelar
+                          </button>
+                          <button className="gold-button" type="submit" disabled={saving}>
+                            {saving ? 'Salvando...' : compromissoEditandoId !== null ? 'Salvar alterações' : 'Salvar compromisso'}
+                          </button>
+                        </div>
+                      </form>
+                    </section>
+                  </div>
+                )}
       </main>
     </div>
   );
