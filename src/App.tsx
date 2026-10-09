@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 type Tela =
@@ -393,7 +394,16 @@ const clienteVazio = {
 };
 
 export default function App() {
+  const [sessao, setSessao] = useState<Session | null>(null);
+  const [autenticacaoPronta, setAutenticacaoPronta] = useState(false);
+  const [permissaoVerificada, setPermissaoVerificada] = useState(false);
+  const [administradorAutorizado, setAdministradorAutorizado] = useState(false);
+  const [emailLogin, setEmailLogin] = useState('');
+  const [senhaLogin, setSenhaLogin] = useState('');
+  const [entrando, setEntrando] = useState(false);
+  const [erroLogin, setErroLogin] = useState('');
   const [tela, setTela] = useState<Tela>('dashboard');
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [accounts, setAccounts] = useState<ClientAccount[]>([]);
   const [guidelines, setGuidelines] = useState<ClientGuideline[]>([]);
@@ -579,15 +589,110 @@ export default function App() {
   const guidelineCliente = guidelines.find((item) => item.client_id === clienteAbertoId) ?? null;
   const assetsCliente = assets.filter((item) => item.client_id === clienteAbertoId);
 
+  // O aplicativo nunca consulta dados da agência antes da autenticação e autorização.
   useEffect(() => {
+    let ativo = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evento, sessaoAtual) => {
+      if (!ativo) return;
+      setSessao(sessaoAtual);
+      setAutenticacaoPronta(true);
+    });
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!ativo) return;
+      if (error) setErroLogin('Não foi possível restaurar sua sessão. Tente entrar novamente.');
+      setSessao(data.session ?? null);
+      setAutenticacaoPronta(true);
+    });
+
+    return () => {
+      ativo = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let ativo = true;
+    setAdministradorAutorizado(false);
+    if (!sessao?.user.id) {
+      setPermissaoVerificada(true);
+      return;
+    }
+
+    setPermissaoVerificada(false);
+    // A tabela agency_admins permite ler apenas a própria autorização.
+    supabase.from('agency_admins')
+      .select('user_id')
+      .eq('user_id', sessao.user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!ativo) return;
+        if (error) {
+          console.error('Erro de autorização:', error);
+          setErroLogin('Não foi possível verificar seu acesso. Confirme a configuração no Supabase.');
+        } else {
+          setErroLogin('');
+        }
+        setAdministradorAutorizado(Boolean(data) && !error);
+        setPermissaoVerificada(true);
+      });
+
+    return () => { ativo = false; };
+  }, [sessao?.user.id]);
+
+  useEffect(() => {
+    if (!administradorAutorizado || !sessao) return;
     carregarClientes();
     carregarConteudos();
     carregarFinanceiroDashboard();
     carregarCampanhas();
     carregarTarefasAgenda();
-  }, []);
+  }, [administradorAutorizado, sessao?.user.id]);
+
+  async function entrarNaAgencia(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setEntrando(true);
+    setErroLogin('');
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailLogin.trim(),
+      password: senhaLogin,
+    });
+    setEntrando(false);
+    if (error) {
+      setErroLogin(/invalid login credentials/i.test(error.message)
+        ? 'E-mail ou senha incorretos.'
+        : `Não foi possível entrar: ${error.message}`);
+    } else {
+      setSenhaLogin('');
+    }
+  }
+
+  async function sairDaAgencia() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setErroLogin('Não foi possível sair da conta. Tente novamente.');
+      return;
+    }
+    setAdministradorAutorizado(false);
+    setClients([]);
+    setAccounts([]);
+    setGuidelines([]);
+    setAssets([]);
+    setConteudos([]);
+    setFinanceiroEntries([]);
+    setTarefas([]);
+    setAgendaEvents([]);
+    setCampanhas([]);
+    setResultadosCampanhas([]);
+    setErro('');
+    setSucesso('');
+  }
 
   useEffect(() => {
+    if (!administradorAutorizado) {
+      setAssetUrls({});
+      return;
+    }
     async function carregarUrlsPrivadas() {
       const comArquivo = assets.filter((asset) => Boolean(asset.file_url));
       if (comArquivo.length === 0) {
@@ -618,7 +723,7 @@ export default function App() {
     }
 
     carregarUrlsPrivadas();
-  }, [assets]);
+  }, [assets, administradorAutorizado]);
 
   useEffect(() => {
     if (!clienteAbertoId) {
@@ -817,6 +922,18 @@ export default function App() {
     }
     setSucesso('Tarefa excluída.');
     await carregarTarefasAgenda();
+  }
+
+  function abrirFormularioCompromisso() {
+    setErro('');
+    setCompromissoForm({
+      client_id: '',
+      title: '',
+      event_date: agendaDataSelecionada,
+      event_time: '',
+      notes: '',
+    });
+    setMostrarFormCompromisso(true);
   }
 
   async function salvarCompromisso(event: FormEvent) {
@@ -2203,11 +2320,16 @@ export default function App() {
     };
 
     let error;
+    let clienteSalvoId: number | null = clienteEditandoId;
 
     if (clienteEditandoId) {
       ({ error } = await supabase.from('Clients').update(payload).eq('id', clienteEditandoId));
     } else {
-      ({ error } = await supabase.from('Clients').insert(payload));
+      // Ao cadastrar, trazemos o ID do registro criado para abrir imediatamente
+      // a etapa de redes sociais e orientações, sem voltar à lista de clientes.
+      const resultado = await supabase.from('Clients').insert(payload).select('id').single();
+      error = resultado.error;
+      clienteSalvoId = resultado.data?.id ?? null;
     }
 
     setSaving(false);
@@ -2218,11 +2340,18 @@ export default function App() {
       return;
     }
 
-    setSucesso(clienteEditandoId ? 'Cliente atualizado com sucesso.' : 'Cliente cadastrado com sucesso.');
+    setSucesso(
+      clienteEditandoId
+        ? 'Cliente atualizado com sucesso.'
+        : 'Cliente cadastrado! Continue abaixo adicionando as redes sociais e as orientações da marca.'
+    );
     setMostrarFormularioCliente(false);
     setClienteEditandoId(null);
     setClienteForm(clienteVazio);
     await carregarClientes();
+    if (clienteSalvoId !== null) {
+      setClienteAbertoId(clienteSalvoId);
+    }
   }
 
   async function alterarStatusCliente(client: Client) {
@@ -2477,6 +2606,57 @@ export default function App() {
     await carregarClientes();
   }
 
+  if (!autenticacaoPronta) {
+    return <div className="auth-page"><p className="auth-progress">Verificando sua sessão...</p></div>;
+  }
+
+  if (!sessao) {
+    return (
+      <main className="auth-page">
+        <section className="auth-card">
+          <img className="auth-logo" src="/agencia-premium-logo.jpg" alt="Agência Premium" />
+          <p className="auth-eyebrow">ÁREA RESTRITA</p>
+          <h1>Acessar Agência Premium</h1>
+          <p className="auth-description">Entre com seu e-mail e senha para acessar a agenda e os dados da agência.</p>
+          <form onSubmit={entrarNaAgencia} className="auth-form">
+            <label htmlFor="auth-email">E-mail</label>
+            <input id="auth-email" type="email" autoComplete="username" required
+              value={emailLogin} onChange={(e) => setEmailLogin(e.target.value)}
+              placeholder="seuemail@exemplo.com" />
+            <label htmlFor="auth-password">Senha</label>
+            <input id="auth-password" type="password" autoComplete="current-password" required
+              value={senhaLogin} onChange={(e) => setSenhaLogin(e.target.value)}
+              placeholder="Sua senha" />
+            {erroLogin && <p className="auth-error" role="alert">{erroLogin}</p>}
+            <button className="gold-button auth-submit" type="submit" disabled={entrando}>
+              {entrando ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+          <p className="auth-tip">Seu acesso deve ser criado e autorizado no Supabase. Não é necessário fazer login a cada visita neste dispositivo.</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!permissaoVerificada) {
+    return <div className="auth-page"><p className="auth-progress">Conferindo sua autorização...</p></div>;
+  }
+
+  if (!administradorAutorizado) {
+    return (
+      <main className="auth-page">
+        <section className="auth-card">
+          <img className="auth-logo" src="/agencia-premium-logo.jpg" alt="Agência Premium" />
+          <h1>Acesso ainda não autorizado</h1>
+          <p className="auth-description">A conta {sessao.user.email ?? ''} foi identificada, mas não está na lista de administradores da Agência Premium.</p>
+          <p className="auth-description">Verifique a etapa de autorização no Supabase.</p>
+          {erroLogin && <p className="auth-error" role="alert">{erroLogin}</p>}
+          <button type="button" className="gold-button auth-submit" onClick={sairDaAgencia}>Sair da conta</button>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -2484,23 +2664,85 @@ export default function App() {
           <img className="brand-logo" src="/agencia-premium-logo.jpg" alt="Agência Premium" />
         </div>
 
-        <nav className="menu-nav">
+        <nav className="menu-nav" aria-label="Navegação principal">
           {menu.map((item) => (
             <button
+              type="button"
               key={item.id}
-              className={tela === item.id ? 'active' : ''}
-              onClick={() => setTela(item.id)}
+              className={`${tela === item.id ? 'active' : ''} ${item.id === 'campanhas' || item.id === 'financeiro' ? 'mobile-overflow-item' : ''}`.trim()}
+              aria-current={tela === item.id ? 'page' : undefined}
+              onClick={() => {
+                setMenuMobileAberto(false);
+                setTela(item.id);
+                window.scrollTo(0, 0);
+              }}
             >
-              <span className="menu-icon">{item.icon}</span>
+              <span className="menu-icon" aria-hidden="true">{item.icon}</span>
               <span>{item.label}</span>
             </button>
           ))}
+          <button
+            type="button"
+            className={`mobile-more-button ${menuMobileAberto || tela === 'campanhas' || tela === 'financeiro' ? 'active' : ''}`}
+            onClick={() => setMenuMobileAberto((aberto) => !aberto)}
+            aria-expanded={menuMobileAberto}
+            aria-controls="mobile-extra-menu"
+            aria-label="Mais opções de navegação"
+          >
+            <span className="menu-icon" aria-hidden="true">•••</span>
+            <span>Mais</span>
+          </button>
         </nav>
+
+        {menuMobileAberto && (
+          <>
+            <div className="mobile-more-sheet" id="mobile-extra-menu" role="dialog" aria-label="Mais opções">
+              <div className="mobile-more-header">
+                <strong>Mais opções</strong>
+                <button type="button" aria-label="Fechar opções" onClick={() => setMenuMobileAberto(false)}>×</button>
+              </div>
+              {menu.filter((item) => item.id === 'campanhas' || item.id === 'financeiro').map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`mobile-more-option ${tela === item.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setTela(item.id);
+                    setMenuMobileAberto(false);
+                    window.scrollTo(0, 0);
+                  }}
+                >
+                  <span className="mobile-more-option-icon" aria-hidden="true">{item.icon}</span>
+                  <span>{item.label}</span>
+                  <span aria-hidden="true">›</span>
+                </button>
+              ))}
+              <button type="button" className="mobile-more-option mobile-more-logout" onClick={() => {
+                setMenuMobileAberto(false);
+                void sairDaAgencia();
+              }}>
+                <span className="mobile-more-option-icon" aria-hidden="true">↪</span>
+                <span>Sair da conta</span>
+                <span aria-hidden="true">›</span>
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="sidebar-footer">
           <small>ESTRATÉGIA • CRIATIVIDADE • RESULTADOS</small>
+          <button className="auth-logout" type="button" onClick={sairDaAgencia}>Sair da conta</button>
         </div>
       </aside>
+
+      {menuMobileAberto && (
+        <button
+          className="mobile-more-backdrop"
+          type="button"
+          aria-label="Fechar menu Mais"
+          onClick={() => setMenuMobileAberto(false)}
+        />
+      )}
 
       <main className="main">
         <header className={`topbar ${tela === 'dashboard' ? 'dashboard-topbar' : ''}`}>
@@ -2551,16 +2793,7 @@ export default function App() {
           ) : tela === 'dashboard' ? (
             <button
               className="gold-button"
-              onClick={() => {
-                setCompromissoForm({
-                  client_id: '',
-                  title: '',
-                  event_date: agendaDataSelecionada,
-                  event_time: '',
-                  notes: '',
-                });
-                setMostrarFormCompromisso(true);
-              }}
+              onClick={abrirFormularioCompromisso}
             >
               + Compromisso
             </button>
@@ -2665,97 +2898,129 @@ export default function App() {
                   </div>
                   <button
                     className="ghost-button"
-                    onClick={() => {
-                      setCompromissoForm({
-                        client_id: '',
-                        title: '',
-                        event_date: agendaDataSelecionada,
-                        event_time: '',
-                        notes: '',
-                      });
-                      setMostrarFormCompromisso(true);
-                    }}
+                    onClick={abrirFormularioCompromisso}
                   >
                     + Compromisso
                   </button>
                 </div>
 
                 {mostrarFormCompromisso && (
-                  <form className="agenda-event-form" onSubmit={salvarCompromisso}>
-                    <select
-                      value={compromissoForm.client_id}
-                      onChange={(e) =>
-                        setCompromissoForm({
-                          ...compromissoForm,
-                          client_id: e.target.value,
-                        })
+                  <div
+                    className="agenda-modal-backdrop"
+                    onMouseDown={(event) => {
+                      if (event.target === event.currentTarget && !saving) {
+                        setMostrarFormCompromisso(false);
                       }
+                    }}
+                  >
+                    <section
+                      className="agenda-modal-card"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="agenda-modal-title"
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape' && !saving) {
+                          setMostrarFormCompromisso(false);
+                        }
+                      }}
                     >
-                      <option value="">Sem cliente</option>
-                      {clients.map((client) => (
-                        <option key={client.id} value={client.id}>
-                          {client.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <input
-                      placeholder="Compromisso"
-                      value={compromissoForm.title}
-                      onChange={(e) =>
-                        setCompromissoForm({
-                          ...compromissoForm,
-                          title: e.target.value,
-                        })
-                      }
-                    />
-
-                    <input
-                      type="date"
-                      value={compromissoForm.event_date}
-                      onChange={(e) =>
-                        setCompromissoForm({
-                          ...compromissoForm,
-                          event_date: e.target.value,
-                        })
-                      }
-                    />
-
-                    <input
-                      type="time"
-                      value={compromissoForm.event_time}
-                      onChange={(e) =>
-                        setCompromissoForm({
-                          ...compromissoForm,
-                          event_time: e.target.value,
-                        })
-                      }
-                    />
-
-                    <textarea
-                      placeholder="Observações"
-                      value={compromissoForm.notes}
-                      onChange={(e) =>
-                        setCompromissoForm({
-                          ...compromissoForm,
-                          notes: e.target.value,
-                        })
-                      }
-                    />
-
-                    <div className="agenda-form-actions">
-                      <button className="gold-button" type="submit" disabled={saving}>
-                        Salvar
-                      </button>
-                      <button
-                        type="button"
-                        className="ghost-button"
-                        onClick={() => setMostrarFormCompromisso(false)}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </form>
+                      <div className="agenda-modal-header">
+                        <div>
+                          <p className="eyebrow">AGÊNCIA PREMIUM · AGENDA</p>
+                          <h2 id="agenda-modal-title">Novo compromisso</h2>
+                          <p>Preencha os dados para adicionar à agenda.</p>
+                        </div>
+                        <button
+                          className="agenda-modal-close"
+                          type="button"
+                          aria-label="Fechar formulário de compromisso"
+                          disabled={saving}
+                          onClick={() => setMostrarFormCompromisso(false)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <form className="agenda-event-form agenda-modal-form" onSubmit={salvarCompromisso}>
+                        <label htmlFor="agenda-novo-cliente">
+                          Cliente
+                          <select
+                            id="agenda-novo-cliente"
+                            value={compromissoForm.client_id}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, client_id: e.target.value })
+                            }
+                          >
+                            <option value="">Sem cliente</option>
+                            {clients.map((client) => (
+                              <option key={client.id} value={client.id}>{client.name}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label htmlFor="agenda-novo-titulo">
+                          Compromisso
+                          <input
+                            id="agenda-novo-titulo"
+                            placeholder="Digite o compromisso"
+                            required
+                            autoFocus
+                            value={compromissoForm.title}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, title: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label htmlFor="agenda-novo-data">
+                          Data
+                          <input
+                            id="agenda-novo-data"
+                            type="date"
+                            required
+                            value={compromissoForm.event_date}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, event_date: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label htmlFor="agenda-novo-hora">
+                          Horário (opcional)
+                          <input
+                            id="agenda-novo-hora"
+                            type="time"
+                            value={compromissoForm.event_time}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, event_time: e.target.value })
+                            }
+                          />
+                        </label>
+                        <label htmlFor="agenda-novo-notas" className="agenda-modal-full">
+                          Observações (opcional)
+                          <textarea
+                            id="agenda-novo-notas"
+                            placeholder="Informações adicionais"
+                            rows={3}
+                            value={compromissoForm.notes}
+                            onChange={(e) =>
+                              setCompromissoForm({ ...compromissoForm, notes: e.target.value })
+                            }
+                          />
+                        </label>
+                        {erro && <p className="agenda-modal-error" role="alert">{erro}</p>}
+                        <div className="agenda-form-actions agenda-modal-full">
+                          <button
+                            type="button"
+                            className="ghost-button"
+                            disabled={saving}
+                            onClick={() => setMostrarFormCompromisso(false)}
+                          >
+                            Cancelar
+                          </button>
+                          <button className="gold-button" type="submit" disabled={saving}>
+                            {saving ? 'Salvando...' : 'Salvar compromisso'}
+                          </button>
+                        </div>
+                      </form>
+                    </section>
+                  </div>
                 )}
 
                 <div className="agenda-day-list">
@@ -3142,7 +3407,7 @@ export default function App() {
 
                 <div className="full form-actions">
                   <button className="gold-button" type="submit" disabled={saving}>
-                    {saving ? 'Salvando...' : clienteEditandoId ? 'Salvar alterações' : 'Cadastrar cliente'}
+                    {saving ? 'Salvando...' : clienteEditandoId ? 'Salvar alterações' : 'Salvar e continuar'}
                   </button>
                 </div>
               </form>

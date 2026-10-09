@@ -2853,3 +2853,571 @@ body,
   .main .dashboard-metrics .metric-card strong,
   .main .metric-card strong { font-size: 20px !important; }
 }
+
+
+/* Autenticação: visual compatível com o preto e dourado da Agência Premium. */
+.auth-page {
+  min-height: 100dvh;
+  width: 100%;
+  padding: 28px 16px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 12%, rgba(214, 171, 72, .12), transparent 45%), #080808;
+}
+.auth-card {
+  width: min(100%, 420px);
+  padding: 28px;
+  border: 1px solid rgba(224, 184, 93, .35);
+  border-radius: 18px;
+  background: #13120f;
+  box-shadow: 0 18px 80px rgba(0,0,0,.5);
+}
+.auth-logo { width: 108px; height: 108px; object-fit: contain; margin: 0 auto 12px; border-radius: 12px; }
+.auth-eyebrow { color: #d9bb6f; font-weight: 750; letter-spacing: .15em; font-size: 13px; text-align: center; }
+.auth-card h1 { font-size: clamp(24px, 5vw, 32px); text-align: center; margin: 0 0 12px; }
+.auth-description, .auth-tip { color: #c9c3b8; font-size: 15px; line-height: 1.5; text-align: center; }
+.auth-tip { color: #9f9b92; font-size: 13px; margin: 18px 0 0; }
+.auth-form { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+.auth-form label { color: #f2dfb5; font-size: 15px; font-weight: 650; }
+.auth-form input {
+  width: 100%; min-height: 46px; padding: 11px 13px; border-radius: 10px;
+  border: 1px solid rgba(224, 184, 93, .32); background: #090909;
+  color: #f7f1e3; font-size: 16px;
+}
+.auth-form input:focus-visible { outline: 2px solid #e4bd66; outline-offset: 2px; }
+.auth-submit { width: 100%; min-height: 46px; margin-top: 12px; font-size: 16px; }
+.auth-submit:disabled { opacity: .65; cursor: wait; }
+.auth-error { color: #ffb2b2; background: #381717; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.auth-progress { color: #e4c47e; font-size: 18px; }
+.sidebar .auth-logout {
+  display: block; width: 100%; margin-top: 12px; padding: 9px; border-radius: 8px;
+  background: transparent; border: 1px solid rgba(224,184,93,.3);
+  color: #ecd9ac; font-size: 14px; text-align: center;
+}
+.sidebar .auth-logout:hover { background: rgba(224,184,93,.1); }
+@media (max-width: 600px) { .auth-card { padding: 22px 18px; } }
+
+
+/* ============================================================
+   AGÊNCIA PREMIUM · EXPERIÊNCIA DE APLICATIVO NO CELULAR
+   Executa APÓS os estilos antigos para neutralizar as fontes de
+   7–9px e trocar a navegação de duas linhas por cinco abas fixas.
+   Desktop permanece inalterado. Sem dependências externas.
+   ============================================================ */
+.sidebar .menu-nav > button.mobile-more-button { display: none !important; }
+.mobile-more-sheet, .mobile-more-backdrop { display: none; }
+
+@media (max-width: 900px) {
+  :root { font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  html { scroll-padding-top: 84px; }
+  body { font-size: 16px !important; padding-bottom: 0 !important; }
+  body, #root, .app-shell { min-height: 100dvh; }
+  button, input, select, textarea { touch-action: manipulation; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid #f2d78d;
+    outline-offset: 2px;
+  }
+  .app-shell { display: block !important; width: 100%; }
+
+  /* Barra de navegação fixa, com altura de aplicativo e área segura Android/iOS. */
+  .sidebar {
+    display: block !important;
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    z-index: 1000 !important;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    background: rgba(12, 11, 10, .98) !important;
+    border-top: 1px solid rgba(239, 206, 130, .24) !important;
+    border-right: none !important;
+    box-shadow: 0 -12px 30px rgba(0,0,0,.52);
+    backdrop-filter: blur(20px);
+    overflow: visible !important;
+  }
+  .sidebar .brand, .sidebar .sidebar-footer { display: none !important; }
+  .sidebar .menu-nav {
+    position: relative;
+    z-index: 3;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+    gap: 3px !important;
+    margin: 0 !important;
+  }
+  .sidebar .menu-nav > button {
+    min-width: 0 !important;
+    min-height: 60px !important;
+    padding: 7px 2px 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 5px !important;
+    border: 1px solid transparent !important;
+    border-radius: 12px !important;
+    font-size: 12px !important;
+    font-weight: 650;
+    line-height: 1.15 !important;
+    letter-spacing: -.01em;
+    color: #c9c3b9;
+    background: transparent;
+  }
+  .sidebar .menu-nav > button:nth-child(1) { order: 1; }
+  .sidebar .menu-nav > button:nth-child(2) { order: 2; }
+  .sidebar .menu-nav > button:nth-child(3) { order: 3; }
+  .sidebar .menu-nav > button:nth-child(6) { order: 4; }
+  .sidebar .menu-nav > button.mobile-more-button { order: 5; display: flex !important; }
+  .sidebar .menu-nav > button.mobile-overflow-item { display: none !important; }
+  .sidebar .menu-nav > button.active {
+    color: #f2d489 !important;
+    border-color: rgba(239, 206, 130, .24) !important;
+    background: linear-gradient(180deg, rgba(224, 184, 93, .15), rgba(224, 184, 93, .05)) !important;
+  }
+  .sidebar .menu-nav > button .menu-icon {
+    display: block;
+    width: auto !important;
+    font-size: 21px !important;
+    line-height: 1 !important;
+    font-weight: 500;
+    min-height: 21px;
+  }
+  .sidebar .menu-nav > button.mobile-more-button .menu-icon { font-size: 18px !important; }
+
+  /* O painel Mais fica acima da navegação; inclui Financeiro, Campanhas e Sair. */
+  .mobile-more-backdrop {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, .64);
+    border: 0;
+  }
+  .mobile-more-sheet {
+    display: grid !important;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 12px;
+    right: 12px;
+    z-index: 2;
+    gap: 6px;
+    padding: 18px 14px;
+    border: 1px solid rgba(239, 206, 130, .27);
+    border-radius: 20px;
+    background: #191713;
+    box-shadow: 0 18px 44px rgba(0,0,0,.6);
+  }
+  .mobile-more-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px 8px;
+    color: #f5e2b6;
+    font-size: 18px;
+  }
+  .mobile-more-header button {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(239,206,130,.19);
+    border-radius: 12px;
+    background: #211e18;
+    color: #f5e2b6;
+    font-size: 24px;
+  }
+  .mobile-more-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 54px;
+    padding: 11px 13px;
+    border: 1px solid rgba(239,206,130,.12);
+    border-radius: 12px;
+    color: #eee7db;
+    background: #11110f;
+    text-align: left;
+    font-size: 16px;
+  }
+  .mobile-more-option.active { border-color: #d3ab5c; color: #f6dfaa; }
+  .mobile-more-option span:nth-child(2) { flex: 1; }
+  .mobile-more-option-icon { color: #dcbc72; font-size: 22px; width: 27px; text-align: center; }
+  .mobile-more-logout { color: #dfc9ac; margin-top: 4px; }
+
+  /* Cabeçalho compacto de aplicativo em vez de cabeçalho de site. */
+  .main {
+    width: 100% !important;
+    max-width: 760px !important;
+    margin: 0 auto !important;
+    padding: 0 14px calc(106px + env(safe-area-inset-bottom, 0px)) !important;
+    font-size: 16px !important;
+  }
+  .main .topbar {
+    position: relative;
+    align-items: center !important;
+    justify-content: space-between;
+    gap: 12px !important;
+    min-height: 80px;
+    margin: 0 -14px 16px !important;
+    padding: 14px 14px 13px !important;
+    border-bottom: 1px solid rgba(239,206,130,.16);
+    background: linear-gradient(180deg, #16130e 0%, #0c0b0a 100%);
+  }
+  .main .topbar-title-wrap { min-width: 0; gap: 10px !important; }
+  .main .topbar-title-wrap > div:last-child { min-width: 0; }
+  .main .dashboard-logo-box {
+    width: 46px !important;
+    height: 46px !important;
+    flex: 0 0 46px !important;
+    border-radius: 12px !important;
+  }
+  .main .dashboard-logo { width: 46px !important; height: 46px !important; }
+  .main .eyebrow { font-size: 10px !important; line-height: 1.2 !important; letter-spacing: .11em; }
+  .main h1, .main h1.dashboard-title {
+    font-size: clamp(24px, 6vw, 30px) !important;
+    line-height: 1.1 !important;
+    letter-spacing: -.02em;
+  }
+  .main .dashboard-subtitle {
+    max-width: 270px;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    margin-top: 5px;
+  }
+  .main .topbar > .gold-button {
+    flex: 0 0 auto;
+    max-width: 42%;
+    min-height: 44px !important;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+    line-height: 1.2;
+    white-space: normal;
+    border-radius: 12px !important;
+  }
+
+  /* Texto legível e cartões com espaçamento para leitura e toque. */
+  .main p, .main label, .main small, .main .hint, .main .empty,
+  .main .toolbar span, .main .panel-title span, .main .section-subtitle,
+  .main .priority-item small, .main .agenda-empty,
+  .main .finance-entry p, .main .task-card p {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+  }
+  .main .metrics, .main .dashboard-metrics {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 12px !important;
+    margin-top: 0;
+  }
+  .main .metric-card, .main .dashboard-metrics .metric-card {
+    min-width: 0;
+    min-height: 125px !important;
+    padding: 15px 13px !important;
+    gap: 7px !important;
+    border-radius: 17px !important;
+    background: linear-gradient(160deg,#1b1915 0%,#11110f 100%);
+    border: 1px solid rgba(239,206,130,.18);
+  }
+  .main .metric-card span, .main .metric-card p, .main .metric-card small,
+  .main .dashboard-metrics .metric-card span, .main .dashboard-metrics .metric-card p,
+  .main .dashboard-metrics .metric-card small {
+    color: #c1baad;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    overflow-wrap: anywhere;
+  }
+  .main .metric-card strong, .main .dashboard-metrics .metric-card strong {
+    color: #f0cc78;
+    font-size: 27px !important;
+    line-height: 1.1 !important;
+  }
+  .main .panel, .main .agenda-calendar, .main .agenda-day-panel,
+  .main .priority-column, .main .client-card, .main .campaign-card,
+  .main .task-card, .main .finance-entry {
+    border-radius: 17px !important;
+  }
+  .main .panel, .main .agenda-calendar, .main .agenda-day-panel { padding: 16px 13px !important; }
+  .main .dashboard-agenda { grid-template-columns: minmax(0,1fr) !important; gap: 12px !important; margin-top: 16px; }
+  .main .agenda-calendar-header button {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    font-size: 25px !important;
+  }
+  .main .agenda-calendar-header span { font-size: 12px !important; color: #c0b49f; }
+  .main .agenda-calendar-header strong { font-size: 17px !important; }
+  .main .agenda-weekdays, .main .agenda-days { gap: 2px; }
+  .main .agenda-weekdays { margin-top: 14px; }
+  .main .agenda-weekdays span { font-size: 12px !important; color: #a9a294; }
+  .main .agenda-day {
+    font-size: 16px !important;
+    min-height: 40px !important;
+    border-radius: 11px !important;
+  }
+  .main .agenda-day.selected { box-shadow: 0 3px 12px rgba(194,142,52,.23); }
+  .main .agenda-list-item { grid-template-columns: minmax(0,1fr) !important; gap: 7px; padding: 12px !important; }
+  .main .agenda-list-item strong { font-size: 16px !important; }
+  .main .agenda-list-item small, .main .agenda-type, .main .agenda-status { font-size: 13px !important; }
+  .main .panel-title h3, .main .section-title h3, .main .task-card h3,
+  .main .finance-entry h3, .main .client-card-top > strong { font-size: 18px !important; }
+  .main .gold-button, .main .ghost-button, .main button:not(.agenda-day):not(.mobile-more-option) {
+    min-height: 42px;
+    font-size: 14px !important;
+  }
+  .main input, .main select, .main textarea {
+    min-height: 44px;
+    font-size: 16px !important;
+    max-width: 100%;
+  }
+  .main input::placeholder, .main textarea::placeholder { font-size: 15px !important; }
+  .main .status-pill, .main .content-status, .main .content-type,
+  .main .campaign-status, .main .finance-status, .main .finance-type,
+  .main .finance-recurring, .main .task-tags span, .main .task-alert {
+    font-size: 13px !important;
+    line-height: 1.35;
+  }
+  .main .msg { font-size: 14px !important; line-height: 1.5; }
+}
+
+@media (max-width: 390px) {
+  .main { padding-left: 12px !important; padding-right: 12px !important; }
+  .main .topbar { margin-left: -12px !important; margin-right: -12px !important; padding-left: 12px !important; padding-right: 12px !important; }
+  .main .topbar > .gold-button { font-size: 12px !important; padding: 8px !important; }
+  .main h1, .main h1.dashboard-title { font-size: 24px !important; }
+  .main .dashboard-subtitle { font-size: 11px !important; }
+  .main .dashboard-metrics { gap: 9px !important; }
+  .main .metric-card, .main .dashboard-metrics .metric-card { padding: 13px 11px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar .menu-nav button { transition: none !important; }
+}
+
+@media (max-width: 350px) {
+  .sidebar .menu-nav > button { font-size: 11px !important; }
+}
+
+/* ================================================================
+   AGÊNCIA PREMIUM · AJUSTE FINAL DE LEGIBILIDADE MOBILE (09/10/2026)
+   A versão anterior continha regras de 10 a 13px e ficava pequena
+   mesmo com o DevTools em 100%. Ajusta APENAS a experiência móvel.
+   Layout, login, agenda e acesso ao Supabase permanecem inalterados.
+   ================================================================ */
+@media (max-width: 900px) {
+  /* Leitura confortável no celular, sem ampliar/zoom manual. */
+  html { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; }
+  .main { font-size: 16px !important; }
+
+  /* Cabeçalho: mantém logo, título e ação em layout compacto. */
+  .main .topbar { min-height: 98px !important; padding-top: 17px !important; padding-bottom: 17px !important; }
+  .main .eyebrow { font-size: 12px !important; letter-spacing: .095em !important; line-height: 1.2 !important; }
+  .main h1, .main h1.dashboard-title { font-size: clamp(24px, 6.5vw, 29px) !important; line-height: 1.12 !important; }
+  .main .dashboard-subtitle { font-size: 14px !important; line-height: 1.35 !important; max-width: 250px; }
+  .main .topbar > .gold-button { font-size: 14px !important; font-weight: 750 !important; min-height: 48px !important; padding: 9px 10px !important; }
+
+  /* Quatro cartões do Dashboard: nada de título e descrição minúsculos. */
+  .main .metrics, .main .dashboard-metrics { gap: 12px !important; }
+  .main .metric-card, .main .dashboard-metrics .metric-card {
+    min-height: 151px !important;
+    padding: 17px 13px !important;
+    gap: 8px !important;
+    align-content: start;
+  }
+  .main .metric-card span, .main .dashboard-metrics .metric-card span {
+    font-size: 15.5px !important;
+    line-height: 1.32 !important;
+    font-weight: 500 !important;
+    color: #e0d8c8 !important;
+  }
+  .main .metric-card p, .main .metric-card small,
+  .main .dashboard-metrics .metric-card p, .main .dashboard-metrics .metric-card small {
+    font-size: 14.5px !important;
+    line-height: 1.38 !important;
+    color: #bab5aa !important;
+    overflow-wrap: anywhere;
+  }
+  .main .metric-card strong, .main .dashboard-metrics .metric-card strong {
+    font-size: 30px !important;
+    line-height: 1.08 !important;
+  }
+
+  /* Agenda e seletores: tamanhos que facilitam olhar e tocar. */
+  .main .agenda-calendar-header span { font-size: 13px !important; }
+  .main .agenda-calendar-header strong { font-size: 19px !important; }
+  .main .agenda-weekdays span { font-size: 13.5px !important; }
+  .main .agenda-day { min-height: 44px !important; font-size: 17px !important; }
+  .main .agenda-list-item small, .main .agenda-type, .main .agenda-status { font-size: 14px !important; }
+  .main .agenda-empty, .main .agenda-day-panel p { font-size: 15px !important; }
+
+  /* Conteúdo de outras telas e formulários. */
+  .main p, .main label, .main small, .main .hint, .main .empty,
+  .main .toolbar span, .main .panel-title span, .main .section-subtitle,
+  .main .priority-item small, .main .finance-entry p, .main .task-card p {
+    font-size: 15px !important;
+    line-height: 1.47 !important;
+  }
+  .main .panel-title h3, .main .section-title h3, .main .task-card h3,
+  .main .finance-entry h3, .main .client-card-top > strong { font-size: 19px !important; }
+  .main .gold-button, .main .ghost-button, .main button:not(.agenda-day):not(.mobile-more-option) {
+    font-size: 15px !important;
+  }
+  .main .status-pill, .main .content-status, .main .content-type,
+  .main .campaign-status, .main .finance-status, .main .finance-type,
+  .main .finance-recurring, .main .task-tags span, .main .task-alert {
+    font-size: 14px !important;
+  }
+  .main .msg { font-size: 15px !important; }
+
+  /* Menu estilo aplicativo: 5 atalhos em barra fixa, todos com toque amplo. */
+  .sidebar { padding-top: 8px !important; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important; }
+  .sidebar .menu-nav > button {
+    min-height: 67px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    gap: 6px !important;
+    padding: 7px 1px 6px !important;
+  }
+  .sidebar .menu-nav > button .menu-icon { font-size: 23px !important; min-height: 23px !important; }
+  .sidebar .menu-nav > button.mobile-more-button .menu-icon { font-size: 20px !important; }
+  .main { padding-bottom: calc(119px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* Em celulares compactos, preserva cinco atalhos sem texto cortado. */
+@media (max-width: 365px) {
+  .sidebar .menu-nav > button { font-size: 11.5px !important; }
+  .main .metric-card span, .main .dashboard-metrics .metric-card span { font-size: 14.5px !important; }
+  .main .metric-card p, .main .metric-card small,
+  .main .dashboard-metrics .metric-card p, .main .dashboard-metrics .metric-card small { font-size: 14px !important; }
+  .main .topbar > .gold-button { font-size: 13px !important; }
+}
+
+
+/* ========== Correção + Compromisso (Dashboard) ========== */
+/* O formulário aparece sobre a tela, sem precisar rolar até a agenda. */
+.agenda-modal-backdrop {
+  position: fixed;
+  z-index: 2500;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, .78);
+  backdrop-filter: blur(7px);
+}
+.agenda-modal-card {
+  width: min(100%, 550px);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px;
+  border: 1px solid rgba(237, 196, 104, .37);
+  border-radius: 20px;
+  background: linear-gradient(155deg, #1b1813, #0d0c0b 75%);
+  box-shadow: 0 25px 85px rgba(0, 0, 0, .8);
+  color: #f4ebd7;
+}
+.agenda-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.agenda-modal-header h2 {
+  margin: 6px 0;
+  color: #f3d78e;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 25px;
+  line-height: 1.18;
+}
+.agenda-modal-header p { margin: 4px 0 0; color: #c9c0ad; font-size: 14px; line-height: 1.4; }
+.agenda-modal-close {
+  width: 43px;
+  min-width: 43px;
+  height: 43px;
+  border: 1px solid rgba(240, 206, 130, .25);
+  border-radius: 12px;
+  background: #252019;
+  color: #f3d78e;
+  font-size: 26px;
+  line-height: 1;
+}
+.agenda-event-form.agenda-modal-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px 12px;
+  margin-top: 19px;
+}
+.agenda-modal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  color: #eee0bd;
+  font-size: 15px;
+  font-weight: 650;
+}
+.agenda-modal-form label:nth-child(1), .agenda-modal-form label:nth-child(2),
+.agenda-modal-form .agenda-modal-full, .agenda-modal-form .agenda-modal-error {
+  grid-column: 1 / -1;
+}
+.agenda-modal-form input, .agenda-modal-form select, .agenda-modal-form textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 11px 12px;
+  border: 1px solid rgba(240, 206, 130, .22);
+  border-radius: 11px;
+  background: #10100e;
+  color: #f9f4e8;
+  font-size: 16px;
+  color-scheme: dark;
+}
+.agenda-modal-form textarea { min-height: 90px; resize: vertical; }
+.agenda-modal-form input:focus, .agenda-modal-form select:focus, .agenda-modal-form textarea:focus {
+  outline: 2px solid #d6b566;
+  outline-offset: 1px;
+}
+.agenda-modal-form .agenda-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 6px;
+}
+.agenda-modal-form .agenda-form-actions button {
+  min-height: 46px;
+  border-radius: 11px;
+  padding: 11px 16px;
+  font-size: 15px;
+}
+.agenda-modal-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(244, 121, 121, .3);
+  border-radius: 9px;
+  background: #351a1a;
+  color: #ffd5d5;
+  font-size: 14px;
+}
+@media (max-width: 900px) {
+  .agenda-modal-backdrop { align-items: flex-end; padding: 0; }
+  .agenda-modal-card {
+    width: 100%;
+    max-height: calc(100dvh - 12px);
+    padding: 18px 17px calc(22px + env(safe-area-inset-bottom, 0px));
+    border-radius: 22px 22px 0 0;
+    border-bottom: none;
+  }
+  .agenda-event-form.agenda-modal-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .agenda-modal-form label:nth-child(1), .agenda-modal-form label:nth-child(2),
+  .agenda-modal-form .agenda-modal-full { grid-column: 1 / -1; }
+  .agenda-modal-form label { font-size: 15px !important; }
+  .agenda-modal-form input, .agenda-modal-form select, .agenda-modal-form textarea { font-size: 16px !important; }
+}
+@media (max-width: 370px) {
+  .agenda-modal-card { padding: 16px 13px calc(18px + env(safe-area-inset-bottom, 0px)); }
+  .agenda-event-form.agenda-modal-form { gap: 12px 8px; }
+  .agenda-modal-form .agenda-form-actions { justify-content: stretch; }
+  .agenda-modal-form .agenda-form-actions button { flex: 1 1 45%; padding-left: 9px; padding-right: 9px; }
+}
