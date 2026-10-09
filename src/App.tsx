@@ -2479,6 +2479,45 @@ export default function App() {
       .toLowerCase();
   }
 
+  // No Safari/iOS, enviar o objeto File diretamente pode produzir uma
+  // requisição ao Storage sem conteúdo. Leia os bytes antes do upload.
+  async function lerConteudoDoArquivo(arquivo: File): Promise<ArrayBuffer> {
+    if (!arquivo.size) {
+      throw new Error(
+        'A imagem selecionada está vazia ou não foi disponibilizada pelo iPhone. ' +
+        'Abra a foto, salve-a no app Arquivos e tente selecionar novamente.'
+      );
+    }
+
+    try {
+      const bytes = await arquivo.arrayBuffer();
+      if (bytes.byteLength === arquivo.size && bytes.byteLength > 0) {
+        return bytes;
+      }
+    } catch (erro) {
+      console.warn('Leitura direta do arquivo indisponível; tentando FileReader:', erro);
+    }
+
+    // Alternativa para versões do Safari em que File.arrayBuffer() falha.
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onerror = () => reject(
+        new Error('Não foi possível ler a imagem. Tente salvá-la no app Arquivos e selecioná-la novamente.')
+      );
+      leitor.onload = () => {
+        const bytes = leitor.result;
+        if (bytes instanceof ArrayBuffer && bytes.byteLength === arquivo.size && bytes.byteLength > 0) {
+          resolve(bytes);
+        } else {
+          reject(new Error(
+            'O arquivo não foi carregado por completo. Tente salvar a imagem no app Arquivos e selecionar novamente.'
+          ));
+        }
+      };
+      leitor.readAsArrayBuffer(arquivo);
+    });
+  }
+
   async function salvarAsset(event: FormEvent) {
     event.preventDefault();
     if (!clienteAbertoId) {
@@ -2508,17 +2547,20 @@ export default function App() {
 
     try {
       if (arquivoAsset) {
+        // Garante que o corpo do upload contém bytes válidos, inclusive no iPhone.
+        const conteudo = await lerConteudoDoArquivo(arquivoAsset);
         const nomeSeguro = nomeArquivoSeguro(arquivoAsset.name) || 'arquivo';
+        const tipoArquivo = arquivoAsset.type || 'application/octet-stream';
         caminhoArquivo =
           `${clienteAbertoId}/${novoAsset.asset_type}/` +
           `${Date.now()}-${nomeSeguro}`;
 
         const { error: uploadError } = await supabase.storage
           .from('client-assets')
-          .upload(caminhoArquivo, arquivoAsset, {
+          .upload(caminhoArquivo, conteudo, {
             cacheControl: '3600',
             upsert: false,
-            contentType: arquivoAsset.type || undefined,
+            contentType: tipoArquivo,
           });
 
         if (uploadError) {
